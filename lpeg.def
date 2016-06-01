@@ -1,2 +1,2 @@
 EXPORTS
-luaopen_lpeg
+luaopen_circlpeg
