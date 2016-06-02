@@ -534,4 +534,34 @@ int getcaptures (lua_State *L, const char *s, const char *r, int ptop) {
   return n;
 }
 
+#ifdef NO_ONSTACK_LIGHTUSERDATA
+#include <stdlib.h>
+#include <pthread.h>
 
+#if !defined(INITBACK)
+#define INITBACK        MAXBACK
+#endif
+
+static pthread_mutex_t stack_on_heap_for_lp_match_init_lock = PTHREAD_MUTEX_INITIALIZER;
+static int stack_on_heap_for_lp_match_initialized;
+static pthread_key_t stack_on_heap_for_lp_match;
+struct tls_heap_compensator *lpcap_get_offstack_compenstor() {
+  struct tls_heap_compensator *comp;
+  comp = pthread_getspecific(stack_on_heap_for_lp_match);
+  if(comp == NULL) {
+    comp = calloc(1, sizeof(*comp) + INITCAPSIZE + INITBACK);
+    comp->alloc_capsize = (unsigned char *)comp + sizeof(*comp);
+    comp->alloc_back = (unsigned char *)comp->alloc_capsize + INITCAPSIZE;
+    pthread_setspecific(stack_on_heap_for_lp_match, comp);
+  }
+  return comp;
+}
+void lpcap_initiailize_offstack_compensator() {
+  pthread_mutex_lock(&stack_on_heap_for_lp_match_init_lock);
+  if(!stack_on_heap_for_lp_match_initialized) {
+    stack_on_heap_for_lp_match_initialized = 1;
+    pthread_key_create(&stack_on_heap_for_lp_match, free);
+  }
+  pthread_mutex_unlock(&stack_on_heap_for_lp_match_init_lock);
+}
+#endif

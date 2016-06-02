@@ -33,10 +33,19 @@ typedef struct CapState {
   int valuecached;  /* value stored in cache slot */
 } CapState;
 
-
 int runtimecap (CapState *cs, Capture *close, const char *s, int *rem);
 int getcaptures (lua_State *L, const char *s, const char *r, int ptop);
 int finddyncap (Capture *cap, Capture *last);
+
+#ifdef NO_ONSTACK_LIGHTUSERDATA
+struct tls_heap_compensator {
+  void *alloc_capsize;
+  void *alloc_back;
+};
+
+struct tls_heap_compensator *lpcap_get_offstack_compenstor(void);
+void lpcap_initiailize_offstack_compensator(void);
+#endif
 
 #endif
 
