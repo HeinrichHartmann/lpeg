@@ -1148,7 +1148,12 @@ static size_t initposition (lua_State *L, size_t len) {
 ** Main match function
 */
 static int lp_match (lua_State *L) {
-  Capture *capture = calloc(INITCAPSIZE, sizeof(Capture));
+#ifdef NO_ONSTACK_LIGHTUSERDATA
+  struct tls_heap_compensator *comp = lpcap_get_offstack_compenstor();
+  Capture *capture = comp->alloc_capsize;
+#else
+  Capture capture[INITCAPSIZE];
+#endif
   const char *r;
   size_t l;
   int rv;
@@ -1166,7 +1171,6 @@ static int lp_match (lua_State *L) {
     return 1;
   }
   rv = getcaptures(L, s, r, ptop);
-  free(capture);
   return rv;
 }
 
@@ -1287,6 +1291,9 @@ static struct luaL_Reg metareg[] = {
 
 int luaopen_lpeg (lua_State *L);
 int luaopen_lpeg (lua_State *L) {
+#ifdef NO_ONSTACK_LIGHTUSERDATA
+  lpcap_initiailize_offstack_compensator();
+#endif
   luaL_newmetatable(L, PATTERN_T);
   lua_pushnumber(L, MAXBACK);  /* initialize maximum backtracking */
   lua_setfield(L, LUA_REGISTRYINDEX, MAXSTACKIDX);

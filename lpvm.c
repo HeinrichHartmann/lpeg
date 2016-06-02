@@ -147,7 +147,12 @@ static int removedyncap (lua_State *L, Capture *capture,
 */
 const char *match (lua_State *L, const char *o, const char *s, const char *e,
                    Instruction *op, Capture *capture, int ptop) {
-  Stack *stackbase = calloc(INITBACK, sizeof(Stack));
+#ifdef NO_ONSTACK_LIGHTUSERDATA
+  struct tls_heap_compensator *comp = lpcap_get_offstack_compenstor();
+  Stack *stackbase = comp->alloc_back;
+#else
+  Stack stackbase[INITBACK];
+#endif
   Stack *stacklimit = stackbase + INITBACK;
   Stack *stack = stackbase;  /* point to first empty slot in stack */
   int capsize = INITCAPSIZE;
@@ -169,12 +174,10 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         assert(stack == getstackbase(L, ptop) + 1);
         capture[captop].kind = Cclose;
         capture[captop].s = NULL;
-        free(stackbase);
         return s;
       }
       case IGiveup: {
         assert(stack == getstackbase(L, ptop));
-        free(stackbase);
         return NULL;
       }
       case IRet: {
@@ -348,7 +351,7 @@ const char *match (lua_State *L, const char *o, const char *s, const char *e,
         p++;
         continue;
       }
-      default: assert(0); free(stackbase); return NULL;
+      default: assert(0); return NULL;
     }
   }
 }
