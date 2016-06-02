@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 
 #include "lua.h"
@@ -1147,9 +1148,15 @@ static size_t initposition (lua_State *L, size_t len) {
 /*
 ** Main match function
 */
+static int stack_on_heap_for_lp_match_initialized;
+static pthread_key_t stack_on_heap_for_lp_match;
 static int lp_match (lua_State *L) {
-  Capture *capture = calloc(INITCAPSIZE, sizeof(Capture));
-  assert(capture);
+  Capture *capture = pthread_getspecific(stack_on_heap_for_lp_match);
+  if (capture == NULL) {
+    capture = calloc(INITCAPSIZE, sizeof(Capture));
+    assert(capture);
+    pthread_setspecific(stack_on_heap_for_lp_match, capture);
+  }
   const char *r;
   size_t l;
   int rv;
@@ -1288,6 +1295,10 @@ static struct luaL_Reg metareg[] = {
 
 int luaopen_lpeg (lua_State *L);
 int luaopen_lpeg (lua_State *L) {
+  if(!stack_on_heap_for_lp_match_initialized) {
+    stack_on_heap_for_lp_match_initialized = 1;
+    pthread_key_create(&stack_on_heap_for_lp_match, free);
+  }
   luaL_newmetatable(L, PATTERN_T);
   lua_pushnumber(L, MAXBACK);  /* initialize maximum backtracking */
   lua_setfield(L, LUA_REGISTRYINDEX, MAXSTACKIDX);
