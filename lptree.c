@@ -1174,7 +1174,6 @@ static int lp_match (lua_State *L) {
     return 1;
   }
   rv = getcaptures(L, s, r, ptop);
-  free(capture);
   return rv;
 }
 

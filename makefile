@@ -29,7 +29,7 @@ FILES = lpvm.o lpcap.o lptree.o lpcode.o lpprint.o
 
 # For Linux
 linux:
-	make lpeg.so "DLLFLAGS = -shared -fPIC"
+	make lpeg.so "DLLFLAGS = -shared -fPIC -lpthread"
 
 # For Mac OS
 macosx:
